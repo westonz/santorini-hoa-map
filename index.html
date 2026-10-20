@@ -146,7 +146,7 @@
   </div>
 
   <div id="map-container">
-    <div id="status-pill">Loading Santorini Village...</div>
+    <div id="status-pill">Santorini Village Master Map Ready</div>
     <div id="map"></div>
   </div>
 </div>
@@ -213,4 +213,51 @@
     customLayersGroup.redcurbs.clearLayers();
     customLayersGroup.parkinglanes.clearLayers();
     customLayersGroup.fireworks.clearLayers();
-    custom
+    customLayersGroup.signphotos.clearLayers();
+    customLayersGroup.cameras.clearLayers();
+    customLayersGroup.assets.clearLayers();
+
+    customAssets.forEach(item => {
+      let iconHtml = '🏢';
+      if (item.type === "camera") iconHtml = '📷';
+      else if (item.type === "signphoto") iconHtml = '🖼️';
+
+      const marker = L.marker([item.lat, item.lng], {
+        icon: L.divIcon({ className: '', html: `<div class="compact-marker">${iconHtml}</div>`, iconSize: [28, 28], iconAnchor: [14, 14] })
+      });
+
+      if (item.type === "camera") {
+        const rad = item.radius || 30;
+        L.circle([item.lat, item.lng], { radius: rad, color: '#3b82f6', fillOpacity: 0.12, weight: 1 }).addTo(customLayersGroup.cameras);
+      }
+
+      let imgTag = item.imageData ? `<br><img src="${item.imageData}" style="width:100%;max-height:160px;border-radius:4px;margin-top:6px;" />` : '';
+
+      marker.bindPopup(`<div style="font-size:12px;max-width:200px;"><strong>${item.title}</strong><br>${item.desc}${imgTag}<br><br><button onclick="moveAsset(${item.id})" style="background:#10b981;color:white;border:none;padding:3px 6px;border-radius:4px;cursor:pointer;margin-right:4px;">Move Pin</button><button onclick="editAsset(${item.id})" style="background:#0284c7;color:white;border:none;padding:3px 6px;border-radius:4px;cursor:pointer;margin-right:4px;">Edit</button><button onclick="deleteAsset(${item.id})" style="background:#ef4444;color:white;border:none;padding:3px 6px;border-radius:4px;cursor:pointer;">Delete</button></div>`);
+
+      if (item.type === "signphoto") customLayersGroup.signphotos.addLayer(marker);
+      else if (item.type === "camera") customLayersGroup.cameras.addLayer(marker);
+      else customLayersGroup.assets.addLayer(marker);
+    });
+
+    customLines.forEach(line => {
+      const polyline = L.polyline(line.latlngs, { color: line.color || '#ef4444', weight: 6, opacity: 0.85 });
+      polyline.bindPopup(`<div style="font-size:12px;"><strong>${line.title}</strong><br>${line.desc}<br><br><button onclick="editLine(${line.id})" style="background:#0284c7;color:white;border:none;padding:3px 6px;border-radius:4px;cursor:pointer;margin-right:4px;">Edit</button><button onclick="deleteLine(${line.id})" style="background:#ef4444;color:white;border:none;padding:3px 6px;border-radius:4px;cursor:pointer;">Delete</button></div>`);
+      
+      if (line.color === '#f59e0b') {
+        customLayersGroup.parkinglanes.addLayer(polyline);
+      } else {
+        customLayersGroup.redcurbs.addLayer(polyline);
+      }
+    });
+
+    customPolygons.forEach(poly => {
+      const polygon = L.polygon(poly.latlngs, { color: poly.color || '#ef4444', weight: 2, fillColor: poly.color || '#ef4444', fillOpacity: 0.35 });
+      polygon.bindPopup(`<div style="font-size:12px;"><strong>${poly.title}</strong><br>${poly.desc}<br><br><button onclick="editPolygon(${poly.id})" style="background:#0284c7;color:white;border:none;padding:3px 6px;border-radius:4px;cursor:pointer;margin-right:4px;">Edit</button><button onclick="deletePolygon(${poly.id})" style="background:#ef4444;color:white;border:none;padding:3px 6px;border-radius:4px;cursor:pointer;">Delete</button></div>`);
+      customLayersGroup.fireworks.addLayer(polygon);
+    });
+  }
+
+  window.deleteAsset = function(id) { customAssets = customAssets.filter(a => a.id !== id); localStorage.setItem("santorini_hoa_assets", JSON.stringify(customAssets)); renderCustomData(); };
+  window.deleteLine = function(id) { customLines = customLines.filter(l => l.id !== id); localStorage.setItem("santorini_hoa_lines", JSON.stringify(customLines)); renderCustomData(); };
+  window.deletePolygon = function(id) { customPolygons = customPolygons.filter(p => p.id !==
