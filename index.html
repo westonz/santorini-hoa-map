@@ -36,9 +36,6 @@
     .row-inputs { display: flex; gap: 6px; }
     .row-inputs > div { flex: 1; display: flex; flex-direction: column; gap: 4px; }
     #info-box { font-size: 0.78rem; color: #e2e8f0; max-height: 220px; overflow-y: auto; background: #0f172a; padding: 10px; border-radius: 6px; }
-    #info-box table { width: 100%; border-collapse: collapse; margin-top: 6px; }
-    #info-box td { padding: 3px 4px; border-bottom: 1px solid #334155; word-break: break-word; }
-    #info-box td.key { color: #94a3b8; font-weight: 600; width: 42%; }
     #map-container { flex: 1; position: relative; height: 100%; }
     #map { width: 100%; height: 100%; background: #e2e8f0; }
     #status-pill {
@@ -74,7 +71,7 @@
       <div class="layer-item"><label><input type="checkbox" id="lyr-hoaboundary" checked /> HOA Subdivision Boundary Outline</label></div>
       <div class="layer-item"><label><input type="checkbox" id="lyr-firelanes" checked /> Fire Lanes &amp; Red Curbs (Lines)</label></div>
       <div class="layer-item"><label><input type="checkbox" id="lyr-fireworks" checked /> HOA Firework Restriction Zones</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-signs" checked /> Fire Lane Signs &amp; Photos</label></div>
+      <div class="layer-item"><label><input type="checkbox" id="lyr-signphotos" checked /> Sign Photos</label></div>
       <div class="layer-item"><label><input type="checkbox" id="lyr-cameras" checked /> Security Cameras &amp; FOV</label></div>
       <div class="layer-item"><label><input type="checkbox" id="lyr-assets" checked /> HOA Shed, Pumps &amp; Infrastructure</label></div>
     </div>
@@ -84,77 +81,5 @@
       <div class="form-group">
         <label>Category:</label>
         <select id="newCategory">
-          <option value="camera">Security Camera (with FOV/Radius)</option>
-          <option value="sign">Fire Lane Sign &amp; Photo</option>
-          <option value="asset">HOA Asset (Shed/Pump)</option>
-        </select>
-        <label>Title / Label:</label>
-        <input type="text" id="newTitle" placeholder="e.g. Camera 01 - North Entrance" />
-        <div class="row-inputs">
-          <div>
-            <label>Camera Radius (m):</label>
-            <input type="number" id="camRadius" value="35" />
-          </div>
-          <div>
-            <label>Camera Angle (°):</label>
-            <input type="number" id="camAngle" value="0" placeholder="0-360" />
-          </div>
-        </div>
-        <label>Details / Link / Image URL:</label>
-        <textarea id="newDesc" rows="2" placeholder="Dashboard URL, photo link, or notes..."></textarea>
-        <button class="btn btn-green" id="enableAddBtn">Activate Drop Pin Mode</button>
-      </div>
-      <hr style="border:0; border-top:1px solid #475569; margin:8px 0;">
-      <div class="form-group">
-        <label>Line / Shape Color:</label>
-        <select id="shapeColor">
-          <option value="#ef4444">Red (Fire Lane / Fireworks Ban)</option>
-          <option value="#f59e0b">Yellow (No Parking)</option>
-          <option value="#3b82f6">Blue (Water / Utility)</option>
-          <option value="#10b981">Green (General HOA Zone)</option>
-        </select>
-      </div>
-      <div class="row-inputs" style="margin-top:6px;">
-        <button class="btn" id="startDrawLineBtn" style="background:#ef4444;">Draw Line</button>
-        <button class="btn" id="startDrawPolyBtn" style="background:#f59e0b;">Draw Zone Polygon</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>South Jordan City GIS Layers</h2>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-parcels" /> Parcels Public</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-storm" /> Storm Drains &amp; Land Drains</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-fiber" /> Google Fiber</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-sewer" /> Sanitary Sewer</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-water" /> Secondary Water</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-garbage" /> Garbage Pickup Days</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-firecity" /> City Fire Restrictions</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-zoning" /> Development Zoning</label></div>
-    </div>
-
-    <div class="card">
-      <h2>Basemap</h2>
-      <div class="layer-item">
-        <label><input type="radio" name="basemap" value="esriStreets" /> Street</label>
-        <label><input type="radio" name="basemap" value="cartoLight" /> Light</label>
-        <label><input type="radio" name="basemap" value="aerial" checked /> Aerial / Satellite</label>
-      </div>
-    </div>
-
-    <div class="card" style="flex:1; display:flex; flex-direction:column;">
-      <h2>Inspector</h2>
-      <div id="info-box">Click any item on the map to inspect or edit details.</div>
-    </div>
-  </div>
-
-  <div id="map-container">
-    <div id="status-pill">Loading Santorini Village...</div>
-    <div id="map"></div>
-  </div>
-</div>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/esri-leaflet@3.0.12/dist/esri-leaflet.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-<script>
-  const BASE_REST = "
+          <option value="signphoto">Fire Lane Sign &amp; Upload Photo</option>
+          <option value="camera">Security Camera (with Radius
