@@ -152,4 +152,184 @@
   const basemaps = {
     esriStreets: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 }),
     cartoLight: L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { maxZoom: 19 }),
-    aerial: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 }).addTo(
+    aerial: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 }).addTo(map)
+  };
+
+  const cityLayers = {
+    parcels: L.esri.dynamicMapLayer({ url: `${BASE_REST}/Parcels_public/MapServer`, opacity: 0.85 }).addTo(map),
+    storm: L.esri.dynamicMapLayer({ url: `${BASE_REST}/StormDrain/StormDrain/MapServer`, opacity: 0.95 }).addTo(map),
+    fiber: L.esri.dynamicMapLayer({ url: `${BASE_REST}/Engineering/Google_Fiber/MapServer`, opacity: 0.95 }),
+    sewer: L.esri.dynamicMapLayer({ url: `${BASE_REST}/Public_Works/Sewer/MapServer`, opacity: 0.9 }),
+    water: L.esri.dynamicMapLayer({ url: `${BASE_REST}/Water/SecondaryWater_public/MapServer`, opacity: 0.9 })
+  };
+
+  let customAssets = JSON.parse(localStorage.getItem("santorini_hoa_assets") || JSON.stringify([
+    { id: 1, type: "asset", title: "HOA Storage Shed", lat: 40.5742, lng: -111.9420, desc: "Main equipment and tool shed." },
+    { id: 2, type: "asset", title: "Secondary Water Pump & Valve Box", lat: 40.5750, lng: -111.9431, desc: "Main irrigation tie-in and booster pump." },
+    { id: 3, type: "camera", title: "North Entrance Camera", lat: 40.5765, lng: -111.9415, desc: "PTZ security camera covering entrance. <br><a href='https://your-NVR-dashboard-link.com' target='_blank' style='color:#38bdf8;font-weight:bold;'>Open Live Camera Dashboard &rarr;</a>" },
+    { id: 4, type: "sign", title: "Fire Lane No Parking Sign #1", lat: 40.5755, lng: -111.9440, desc: "Posted tow-away zone sign.<br><img src='https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=300' style='width:100%;border-radius:4px;margin-top:4px;' alt='Sign Photo'>" },
+    { id: 5, type: "firelane", title: "Red Curb Tow-Away Lane (North Drive)", lat: 40.5758, lng: -111.9425, desc: "Enforceable fire lane - Tow away zone 24/7." }
+  ]));
+
+  const customLayersGroup = {
+    firelanes: L.layerGroup().addTo(map),
+    signs: L.layerGroup().addTo(map),
+    cameras: L.layerGroup().addTo(map),
+    assets: L.layerGroup().addTo(map)
+  };
+
+  function renderCustomAssets() {
+    Object.values(customLayersGroup).forEach(g => g.clearLayers());
+
+    customAssets.forEach(item => {
+      let marker;
+      if (item.type === "camera") {
+        marker = L.marker([item.lat, item.lng], {
+          icon: L.divIcon({ className: 'custom-pin', html: '<div style="background:#3b82f6;color:white;padding:4px 8px;border-radius:12px;font-size:11px;font-weight:bold;box-shadow:0 2px 4px rgba(0,0,0,0.4);">📷 ' + item.title + '</div>' })
+        });
+        L.circle([item.lat, item.lng], { radius: 35, color: '#3b82f6', fillOpacity: 0.15, weight: 1 }).addTo(customLayersGroup.cameras);
+      } else if (item.type === "sign") {
+        marker = L.marker([item.lat, item.lng], {
+          icon: L.divIcon({ className: 'custom-pin', html: '<div style="background:#ef4444;color:white;padding:4px 8px;border-radius:12px;font-size:11px;font-weight:bold;box-shadow:0 2px 4px rgba(0,0,0,0.4);">🛑 ' + item.title + '</div>' })
+        });
+      } else if (item.type === "firelane") {
+        marker = L.circleMarker([item.lat, item.lng], { radius: 8, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.8 });
+      } else {
+        marker = L.marker([item.lat, item.lng], {
+          icon: L.divIcon({ className: 'custom-pin', html: '<div style="background:#10b981;color:white;padding:4px 8px;border-radius:12px;font-size:11px;font-weight:bold;box-shadow:0 2px 4px rgba(0,0,0,0.4);">🏢 ' + item.title + '</div>' })
+        });
+      }
+
+      marker.bindPopup(`<div style="font-size:12px;"><strong>${item.title}</strong><br>${item.desc}<br><br><button onclick="deleteAsset(${item.id})" style="background:#ef4444;color:white;border:none;padding:3px 6px;border-radius:4px;cursor:pointer;">Delete Pin</button></div>`);
+
+      if (item.type === "firelane") customLayersGroup.firelanes.addLayer(marker);
+      else if (item.type === "sign") customLayersGroup.signs.addLayer(marker);
+      else if (item.type === "camera") customLayersGroup.cameras.addLayer(marker);
+      else customLayersGroup.assets.addLayer(marker);
+    });
+  }
+
+  window.deleteAsset = function(id) {
+    customAssets = customAssets.filter(a => a.id !== id);
+    localStorage.setItem("santorini_hoa_assets", JSON.stringify(customAssets));
+    renderCustomAssets();
+    document.getElementById("info-box").innerHTML = "Asset deleted.";
+  };
+
+  renderCustomAssets();
+
+  const hoaBorderGroup = L.layerGroup().addTo(map);
+  const hoaMaskGroup = L.layerGroup().addTo(map);
+  let exactHoaBounds = null;
+
+  const hoaQueryUrl = `${BASE_REST}/Planning/Subdivisions/MapServer/0/query?where=${encodeURIComponent("UPPER(NAME) LIKE '%SANTORINI%'")}&outFields=*&outSR=4326&f=geojson`;
+
+  fetch(hoaQueryUrl)
+    .then(res => res.json())
+    .then(featureCollection => {
+      if (!featureCollection || !featureCollection.features || !featureCollection.features.length) return;
+
+      const geojsonLayer = L.geoJSON(featureCollection, {
+        style: { color: "#ef4444", weight: 3, dashArray: "6, 4", fillColor: "#38bdf8", fillOpacity: 0.05 },
+        onEachFeature: (feature, layer) => {
+          if (feature.properties && feature.properties.NAME) {
+            layer.bindTooltip(feature.properties.NAME, { permanent: true, direction: "center", className: "phase-label" });
+          }
+        }
+      }).addTo(hoaBorderGroup);
+
+      exactHoaBounds = geojsonLayer.getBounds();
+      map.fitBounds(exactHoaBounds.pad(0.08), { maxZoom: 18 });
+      map.setMaxBounds(exactHoaBounds.pad(0.45));
+
+      const outerRing = [[85, -179], [85, 179], [-85, 179], [-85, -179]];
+      const holes = [];
+      featureCollection.features.forEach(f => {
+        if (!f.geometry) return;
+        if (f.geometry.type === "Polygon") holes.push(f.geometry.coordinates[0].map(c => [c[1], c[0]]));
+        else if (f.geometry.type === "MultiPolygon") f.geometry.coordinates.forEach(p => holes.push(p[0].map(c => [c[1], c[0]])));
+      });
+
+      L.polygon([outerRing, ...holes], { stroke: false, fillColor: "#0f172a", fillOpacity: 0.55, interactive: false }).addTo(hoaMaskGroup);
+      statusPill.textContent = "Santorini Village Master Map Ready";
+    })
+    .catch(err => {
+      statusPill.textContent = "GIS Fetch Error";
+      console.error(err);
+    });
+
+  let isAddingPin = false;
+  document.getElementById("enableAddBtn").addEventListener("click", () => {
+    isAddingPin = true;
+    document.getElementById("status-pill").textContent = "CLICK MAP TO PLACE PIN";
+    document.getElementById("status-pill").style.background = "#10b981";
+  });
+
+  map.on("click", (e) => {
+    if (isAddingPin) {
+      const cat = document.getElementById("newCategory").value;
+      const title = document.getElementById("newTitle").value || "New HOA Asset";
+      const desc = document.getElementById("newDesc").value || "No description provided.";
+
+      customAssets.push({
+        id: Date.now(),
+        type: cat,
+        title: title,
+        lat: e.latlng.lat,
+        lng: e.latlng.lng,
+        desc: desc
+      });
+
+      localStorage.setItem("santorini_hoa_assets", JSON.stringify(customAssets));
+      renderCustomAssets();
+
+      isAddingPin = false;
+      document.getElementById("status-pill").textContent = "Santorini Village Master Map Ready";
+      document.getElementById("status-pill").style.background = "rgba(15, 23, 42, 0.88)";
+      alert("New asset successfully pinned to map!");
+      return;
+    }
+  });
+
+  document.getElementById("lyr-firelanes").addEventListener("change", (e) => {
+    if (e.target.checked) map.addLayer(customLayersGroup.firelanes); else map.removeLayer(customLayersGroup.firelanes);
+  });
+  document.getElementById("lyr-signs").addEventListener("change", (e) => {
+    if (e.target.checked) map.addLayer(customLayersGroup.signs); else map.removeLayer(customLayersGroup.signs);
+  });
+  document.getElementById("lyr-cameras").addEventListener("change", (e) => {
+    if (e.target.checked) map.addLayer(customLayersGroup.cameras); else map.removeLayer(customLayersGroup.cameras);
+  });
+  document.getElementById("lyr-assets").addEventListener("change", (e) => {
+    if (e.target.checked) map.addLayer(customLayersGroup.assets); else map.removeLayer(customLayersGroup.assets);
+  });
+
+  document.getElementById("lyr-parcels").addEventListener("change", (e) => {
+    if (e.target.checked) map.addLayer(cityLayers.parcels); else map.removeLayer(cityLayers.parcels);
+  });
+  document.getElementById("lyr-storm").addEventListener("change", (e) => {
+    if (e.target.checked) map.addLayer(cityLayers.storm); else map.removeLayer(cityLayers.storm);
+  });
+  document.getElementById("lyr-fiber").addEventListener("change", (e) => {
+    if (e.target.checked) map.addLayer(cityLayers.fiber); else map.removeLayer(cityLayers.fiber);
+  });
+  document.getElementById("lyr-sewer").addEventListener("change", (e) => {
+    if (e.target.checked) map.addLayer(cityLayers.sewer); else map.removeLayer(cityLayers.sewer);
+  });
+  document.getElementById("lyr-water").addEventListener("change", (e) => {
+    if (e.target.checked) map.addLayer(cityLayers.water); else map.removeLayer(cityLayers.water);
+  });
+
+  document.querySelectorAll('input[name="basemap"]').forEach(radio => {
+    radio.addEventListener("change", (e) => {
+      Object.values(basemaps).forEach(b => map.removeLayer(b));
+      map.addLayer(basemaps[e.target.value]);
+    });
+  });
+
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    if (exactHoaBounds) map.fitBounds(exactHoaBounds.pad(0.08), { maxZoom: 18 });
+  });
+</script>
+</body>
+</html>
