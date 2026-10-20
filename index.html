@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Santorini Village HOA - Master Operations &amp; GIS Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body, html { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    #app { display: flex; height: 100vh; width: 100vw; }
+    #sidebar {
+      width: 370px; background: #1e293b; color: #f8fafc; padding: 14px;
+      box-sizing: border-box; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
+      box-shadow: 2px 0 8px rgba(0,0,0,0.3); z-index: 1000;
+    }
+    h1 { font-size: 1.15rem; margin: 0; color: #38bdf8; }
+    .subtitle { font-size: 0.78rem; color: #94a3b8; margin-top: 3px; }
+    .card { background: #334155; border-radius: 8px; padding: 10px 12px; }
+    .card h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #38bdf8; margin: 0 0 8px 0; }
+    .layer-item { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-size: 0.85rem; }
+    .layer-item:last-child { margin-bottom: 0; }
+    .layer-item label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .btn {
+      background: #0284c7; color: white; border: none; padding: 9px 12px;
+      border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.83rem; width: 100%;
+    }
+    .btn:hover { background: #0369a1; }
+    .btn-green { background: #10b981; }
+    .btn-green:hover { background: #059669; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; font-size: 0.78rem; }
+    .form-group input, .form-group select, .form-group textarea {
+      padding: 6px 8px; border-radius: 4px; border: 1px solid #475569;
+      background: #0f172a; color: #f8fafc; font-size: 0.78rem;
+    }
+    #info-box { font-size: 0.78rem; color: #e2e8f0; max-height: 240px; overflow-y: auto; background: #0f172a; padding: 10px; border-radius: 6px; }
+    #info-box table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+    #info-box td { padding: 3px 4px; border-bottom: 1px solid #334155; word-break: break-word; }
+    #info-box td.key { color: #94a3b8; font-weight: 600; width: 42%; }
+    #map-container { flex: 1; position: relative; height: 100%; }
+    #map { width: 100%; height: 100%; background: #e2e8f0; }
+    #status-pill {
+      position: absolute; top: 12px; right: 12px; z-index: 1000;
+      background: rgba(15, 23, 42, 0.88); color: #38bdf8; padding: 6px 12px;
+      border-radius: 20px; font-size: 0.78rem; font-weight: 600;
+      border: 1px solid #334155; pointer-events: none;
+    }
+    .phase-label {
+      background: rgba(15, 23, 42, 0.85); color: #f8fafc; border: 1px solid #ef4444;
+      border-radius: 4px; padding: 2px 6px; font-size: 11px; font-weight: 600;
+      white-space: nowrap; pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebar">
+    <div>
+      <h1>Santorini Village HOA</h1>
+      <div class="subtitle">Master Operations, GIS &amp; Asset Map</div>
+    </div>
+
+    <button class="btn" id="resetBtn">Zoom to HOA Boundary</button>
+
+    <div class="card">
+      <h2>HOA Operations Layers (Custom)</h2>
+      <div class="layer-item">
+        <label><input type="checkbox" id="lyr-firelanes" checked /> Fire Lanes &amp; Tow-Away Zones</label>
+      </div>
+      <div class="layer-item">
+        <label><input type="checkbox" id="lyr-signs" checked /> Fire Lane Signs &amp; Photos</label>
+      </div>
+      <div class="layer-item">
+        <label><input type="checkbox" id="lyr-cameras" checked /> Security Cameras &amp; Coverage</label>
+      </div>
+      <div class="layer-item">
+        <label><input type="checkbox" id="lyr-assets" checked /> HOA Shed, Pumps &amp; Infrastructure</label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Add New HOA Asset / Pin</h2>
+      <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:6px;">Select category, fill details, then click map to place pin:</div>
+      <div class="form-group">
+        <label>Category:</label>
+        <select id="newCategory">
+          <option value="sign">Fire Lane Sign &amp; Photo</option>
+          <option value="firelane">Tow-Away / Fire Lane Segment</option>
+          <option value="camera">Security Camera &amp; Dashboard</option>
+          <option value="asset">HOA Asset (Shed/Pump)</option>
+        </select>
+        <label>Title / Label:</label>
+        <input type="text" id="newTitle" placeholder="e.g. Camera 01 - North Entrance" />
+        <label>Details / Link / Image URL:</label>
+        <textarea id="newDesc" rows="2" placeholder="Dashboard URL, photo link, or maintenance notes..."></textarea>
+        <button class="btn btn-green" id="enableAddBtn">Activate Drop Pin Mode</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>South Jordan City GIS Layers</h2>
+      <div class="layer-item">
+        <label><input type="checkbox" id="lyr-parcels" checked /> Lot Lines &amp; Addresses</label>
+      </div>
+      <div class="layer-item">
+        <label><input type="checkbox" id="lyr-storm" checked /> Storm Drains &amp; Land Drains</label>
+      </div>
+      <div class="layer-item">
+        <label><input type="checkbox" id="lyr-fiber" /> Google Fiber Infrastructure</label>
+      </div>
+      <div class="layer-item">
+        <label><input type="checkbox" id="lyr-sewer" /> Sanitary Sewer Lines</label>
+      </div>
+      <div class="layer-item">
+        <label><input type="checkbox" id="lyr-water" /> Secondary Water</label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Basemap</h2>
+      <div class="layer-item">
+        <label><input type="radio" name="basemap" value="esriStreets" /> Street</label>
+        <label><input type="radio" name="basemap" value="cartoLight" /> Light</label>
+        <label><input type="radio" name="basemap" value="aerial" checked /> Aerial / Satellite</label>
+      </div>
+    </div>
+
+    <div class="card" style="flex:1; display:flex; flex-direction:column;">
+      <h2>Inspector</h2>
+      <div id="info-box">Click any city utility, HOA camera, sign, or asset to inspect details.</div>
+    </div>
+  </div>
+
+  <div id="map-container">
+    <div id="status-pill">Loading Santorini Village...</div>
+    <div id="map"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/esri-leaflet@3.0.12/dist/esri-leaflet.js"></script>
+<script>
+  const BASE_REST = "https://gis2.southjordanutah.gov/server/rest/services";
+  const statusPill = document.getElementById("status-pill");
+
+  const map = L.map("map", {
+    center: [40.5738, -111.9465],
+    zoom: 18,
+    minZoom: 15,
+    maxZoom: 19
+  });
+
+  const basemaps = {
+    esriStreets: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 }),
+    cartoLight: L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { maxZoom: 19 }),
+    aerial: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 }).addTo(
