@@ -7,7 +7,8 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
   <style>
-    body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+    :root { color-scheme: dark; }
+    body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; background: #0f172a; }
     #app { display: flex; height: 100vh; width: 100vw; }
     #sidebar {
       width: 380px; min-width: 380px; background: #1e293b; color: #f8fafc; padding: 14px;
@@ -36,11 +37,11 @@
     .row-inputs { display: flex; gap: 6px; }
     .row-inputs > div { flex: 1; display: flex; flex-direction: column; gap: 4px; }
     #info-box { font-size: 0.78rem; color: #e2e8f0; max-height: 220px; overflow-y: auto; background: #0f172a; padding: 10px; border-radius: 6px; }
-    #map-container { flex: 1; min-width: 0; position: relative; height: 100%; }
-    #map { width: 100%; height: 100%; background: #cbd5e1; }
+    #map-container { flex: 1; min-width: 0; position: relative; height: 100%; display: block; }
+    #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; background: #1e293b; }
     #status-pill {
       position: absolute; top: 12px; right: 12px; z-index: 1000;
-      background: rgba(15, 23, 42, 0.88); color: #38bdf8; padding: 6px 12px;
+      background: rgba(15, 23, 42, 0.92); color: #38bdf8; padding: 6px 12px;
       border-radius: 20px; font-size: 0.78rem; font-weight: 600;
       border: 1px solid #334155; pointer-events: none;
     }
@@ -64,7 +65,7 @@
       <div class="subtitle">Master Operations, GIS &amp; Asset Map</div>
     </div>
 
-    <button class="btn" id="resetBtn">Zoom to HOA Boundary</button>
+    <button class="btn" id="resetBtn">Zoom to Default View</button>
 
     <div class="card">
       <h2>HOA Operations Layers (Custom)</h2>
@@ -73,7 +74,7 @@
       <div class="layer-item"><label><input type="checkbox" id="lyr-parkinglanes" checked /> Parking &amp; Enforcement Lanes (Lines)</label></div>
       <div class="layer-item"><label><input type="checkbox" id="lyr-fireworks" checked /> Firework Restriction Zones (Polygons)</label></div>
       <div class="layer-item"><label><input type="checkbox" id="lyr-signphotos" checked /> Sign Photos</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-cameras" checked /> Security Cameras &amp; FOV</label></div>
+      <div class="layer-item"><label><input type="checkbox" id="lyr-cameras" checked /> Security Cameras &amp; Coverage</label></div>
       <div class="layer-item"><label><input type="checkbox" id="lyr-assets" checked /> HOA Shed, Pumps &amp; Infrastructure</label></div>
     </div>
 
@@ -82,21 +83,15 @@
       <div class="form-group">
         <label>Category:</label>
         <select id="newCategory">
+          <option value="camera">Security Camera (with Coverage Polygon)</option>
           <option value="signphoto">Sign &amp; Upload Photo</option>
-          <option value="camera">Security Camera (with Radius)</option>
           <option value="asset">HOA Asset (Shed/Pump)</option>
         </select>
         <label>Title / Label:</label>
-        <input type="text" id="newTitle" placeholder="e.g. Sign Photo - North Drive" />
-        <div id="photoUploadGroup" class="form-group" style="margin:0;">
+        <input type="text" id="newTitle" placeholder="e.g. North Entrance Camera" />
+        <div id="photoUploadGroup" class="form-group" style="display:none; margin:0;">
           <label>Upload Photo from Device:</label>
           <input type="file" id="imageInput" accept="image/*" />
-        </div>
-        <div class="row-inputs" id="camRadiusGroup" style="display:none; margin-top:6px;">
-          <div>
-            <label>Camera Radius (m):</label>
-            <input type="number" id="camRadius" value="35" />
-          </div>
         </div>
         <label>Notes / Link / Details:</label>
         <textarea id="newDesc" rows="2" placeholder="Dashboard URL or notes..."></textarea>
@@ -146,7 +141,7 @@
   </div>
 
   <div id="map-container">
-    <div id="status-pill">Santorini Village Master Map Ready</div>
+    <div id="status-pill">Map Ready</div>
     <div id="map"></div>
   </div>
 </div>
@@ -155,9 +150,6 @@
 <script src="https://unpkg.com/esri-leaflet@3.0.12/dist/esri-leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 <script>
-  const BASE_REST = "https://gis2.southjordanutah.gov/server/rest/services";
-  const statusPill = document.getElementById("status-pill");
-
   const map = L.map("map", {
     center: [40.5738, -111.9465],
     zoom: 18,
@@ -165,15 +157,15 @@
     maxZoom: 19
   });
 
-  // Force Leaflet to calculate container size properly in flex layout
-  setTimeout(() => { map.invalidateSize(); }, 200);
+  const aerialLayer = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 }).addTo(map);
 
   const basemaps = {
     esriStreets: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 }),
     cartoLight: L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { maxZoom: 19 }),
-    aerial: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 }).addTo(map)
+    aerial: aerialLayer
   };
 
+  const BASE_REST = "https://gis2.southjordanutah.gov/server/rest/services";
   const cityLayers = {
     parcels: L.esri.dynamicMapLayer({ url: `${BASE_REST}/Parcels_public/MapServer`, opacity: 0.85 }),
     storm: L.esri.dynamicMapLayer({ url: `${BASE_REST}/StormDrain/StormDrain/MapServer`, opacity: 0.95 }),
@@ -188,7 +180,7 @@
   let customAssets = JSON.parse(localStorage.getItem("santorini_hoa_assets") || JSON.stringify([
     { id: 1, type: "asset", title: "HOA Storage Shed", lat: 40.5742, lng: -111.9420, desc: "Main equipment and tool shed." },
     { id: 2, type: "asset", title: "Secondary Water Pump & Valve Box", lat: 40.5750, lng: -111.9431, desc: "Main irrigation tie-in and booster pump." },
-    { id: 3, type: "camera", title: "North Entrance Camera", lat: 40.5765, lng: -111.9415, radius: 40, desc: "PTZ security camera covering entrance." },
+    { id: 3, type: "camera", title: "North Entrance Camera", lat: 40.5765, lng: -111.9415, polyCoords: [[40.5765, -111.9415], [40.5772, -111.9420], [40.5772, -111.9410]], desc: "PTZ security camera covering entrance." },
     { id: 4, type: "signphoto", title: "Fire Lane No Parking Sign #1", lat: 40.5755, lng: -111.9440, imageData: null, desc: "Posted tow-away zone sign." }
   ]));
 
@@ -229,9 +221,8 @@
         icon: L.divIcon({ className: '', html: `<div class="compact-marker">${iconHtml}</div>`, iconSize: [28, 28], iconAnchor: [14, 14] })
       });
 
-      if (item.type === "camera") {
-        const rad = item.radius || 30;
-        L.circle([item.lat, item.lng], { radius: rad, color: '#3b82f6', fillOpacity: 0.12, weight: 1 }).addTo(customLayersGroup.cameras);
+      if (item.type === "camera" && item.polyCoords && item.polyCoords.length > 2) {
+        L.polygon(item.polyCoords, { color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.18, weight: 2 }).addTo(customLayersGroup.cameras);
       }
 
       let imgTag = item.imageData ? `<br><img src="${item.imageData}" style="width:100%;max-height:160px;border-radius:4px;margin-top:6px;" />` : '';
@@ -268,8 +259,7 @@
   window.moveAsset = function(id) {
     const item = customAssets.find(a => a.id === id);
     if (!item) return;
-    statusPill.textContent = "MOVE PIN: Click new location on map";
-    statusPill.style.background = "#10b981";
+    document.getElementById("status-pill").textContent = "MOVE PIN: Click new location on map";
     
     const clickHandler = (e) => {
       item.lat = e.latlng.lat;
@@ -277,9 +267,8 @@
       localStorage.setItem("santorini_hoa_assets", JSON.stringify(customAssets));
       renderCustomData();
       map.off("click", clickHandler);
-      statusPill.textContent = "Santorini Village Master Map Ready";
-      statusPill.style.background = "rgba(15, 23, 42, 0.88)";
-      alert("Pin position updated successfully!");
+      document.getElementById("status-pill").textContent = "Map Ready";
+      alert("Pin position updated!");
     };
     map.on("click", clickHandler);
   };
@@ -288,13 +277,9 @@
     const item = customAssets.find(a => a.id === id);
     if (!item) return;
     const newTitle = prompt("Update Title:", item.title);
-    const newDesc = prompt("Update Details / Notes:", item.desc);
+    const newDesc = prompt("Update Details:", item.desc);
     if (newTitle !== null) item.title = newTitle;
     if (newDesc !== null) item.desc = newDesc;
-    if (item.type === "camera") {
-      const newRad = prompt("Update Camera Coverage Radius (meters):", item.radius || 35);
-      if (newRad !== null) item.radius = parseFloat(newRad) || 35;
-    }
     localStorage.setItem("santorini_hoa_assets", JSON.stringify(customAssets));
     renderCustomData();
   };
@@ -324,9 +309,7 @@
   renderCustomData();
 
   document.getElementById("newCategory").addEventListener("change", (e) => {
-    const val = e.target.value;
-    document.getElementById("photoUploadGroup").style.display = (val === "signphoto") ? "flex" : "none";
-    document.getElementById("camRadiusGroup").style.display = (val === "camera") ? "flex" : "none";
+    document.getElementById("photoUploadGroup").style.display = (e.target.value === "signphoto") ? "flex" : "none";
   });
 
   const drawnItems = new L.FeatureGroup().addTo(map);
@@ -339,22 +322,18 @@
   document.getElementById("startDrawLineBtn").addEventListener("click", () => {
     const color = document.getElementById("shapeColor").value;
     new L.Draw.Polyline(map, { shapeOptions: { color: color, weight: 6 } }).enable();
-    statusPill.textContent = "DRAWING LINE: Click points, double-click to finish";
-    statusPill.style.background = color;
   });
 
   document.getElementById("startDrawPolyBtn").addEventListener("click", () => {
     const color = document.getElementById("shapeColor").value;
     new L.Draw.Polygon(map, { shapeOptions: { color: color, weight: 2, fillColor: color, fillOpacity: 0.35 } }).enable();
-    statusPill.textContent = "DRAWING ZONE: Click boundary corners, double-click to close";
-    statusPill.style.background = color;
   });
 
   map.on(L.Draw.Event.CREATED, function (e) {
     const layer = e.layer;
     const type = e.layerType;
     const color = document.getElementById("shapeColor").value;
-    const title = prompt("Enter Name / Label:", type === 'polyline' ? "Line Segment" : "Firework Restriction Zone");
+    const title = prompt("Enter Name / Label:", type === 'polyline' ? "Line Segment" : "Zone");
     const desc = prompt("Enter notes or rules:", "");
 
     if (type === 'polyline') {
@@ -376,20 +355,78 @@
       });
       localStorage.setItem("santorini_hoa_polygons", JSON.stringify(customPolygons));
     }
-
     renderCustomData();
-    statusPill.textContent = "Santorini Village Master Map Ready";
-    statusPill.style.background = "rgba(15, 23, 42, 0.88)";
   });
 
-  let exactHoaBounds = null;
-  const hoaQueryUrl = `${BASE_REST}/Planning/Subdivisions/MapServer/0/query?where=${encodeURIComponent("UPPER(NAME) LIKE '%SANTORINI%'")}&outFields=*&outSR=4326&f=geojson`;
+  let isAddingPin = false;
+  document.getElementById("enableAddBtn").addEventListener("click", () => {
+    isAddingPin = true;
+    document.getElementById("status-pill").textContent = "CLICK MAP TO PLACE CAMERA/PIN";
+  });
 
+  map.on("click", (e) => {
+    if (!isAddingPin) return;
+    
+    // Stop listening immediately so we don't drop extra pins
+    isAddingPin = false;
+    
+    const cat = document.getElementById("newCategory").value;
+    const title = document.getElementById("newTitle").value || "New Asset";
+    const desc = document.getElementById("newDesc").value || "";
+    const fileInput = document.getElementById("imageInput");
+    const clickedLat = e.latlng.lat;
+    const clickedLng = e.latlng.lng;
+
+    const finishAdding = (base64Image, polyCoords) => {
+      customAssets.push({
+        id: Date.now(),
+        type: cat,
+        title: title,
+        lat: clickedLat,
+        lng: clickedLng,
+        polyCoords: polyCoords || null,
+        imageData: base64Image || null,
+        desc: desc
+      });
+
+      localStorage.setItem("santorini_hoa_assets", JSON.stringify(customAssets));
+      renderCustomData();
+      document.getElementById("status-pill").textContent = "Map Ready";
+      if (fileInput) fileInput.value = "";
+      alert("Asset added successfully!");
+    };
+
+    if (cat === "camera") {
+      alert("Camera pin placed! Now click points on the map to draw the camera coverage polygon, then double-click to finish.");
+      document.getElementById("status-pill").textContent = "DRAW CAMERA COVERAGE: Click points, double-click to finish";
+      
+      const camPoint = [clickedLat, clickedLng];
+      const drawPoly = new L.Draw.Polygon(map, { shapeOptions: { color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.18, weight: 2 } });
+      drawPoly.enable();
+
+      const createdHandler = function (evt) {
+        map.off(L.Draw.Event.CREATED, createdHandler);
+        const userPoints = evt.layer.getLatLngs()[0].map(pt => [pt.lat, pt.lng]);
+        finishAdding(null, [camPoint, ...userPoints]);
+      };
+      map.on(L.Draw.Event.CREATED, createdHandler);
+
+    } else if (cat === "signphoto" && fileInput.files && fileInput.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function(uploadEvent) {
+        finishAdding(uploadEvent.target.result, null);
+      };
+      reader.readAsDataURL(fileInput.files[0]);
+    } else {
+      finishAdding(null, null);
+    }
+  });
+
+  const hoaQueryUrl = `${BASE_REST}/Planning/Subdivisions/MapServer/0/query?where=${encodeURIComponent("UPPER(NAME) LIKE '%SANTORINI%'")}&outFields=*&outSR=4326&f=geojson`;
   fetch(hoaQueryUrl)
     .then(res => res.json())
     .then(featureCollection => {
       if (!featureCollection || !featureCollection.features || !featureCollection.features.length) return;
-
       const geojsonLayer = L.geoJSON(featureCollection, {
         style: { color: "#ef4444", weight: 3, dashArray: "6, 4", fillColor: "#38bdf8", fillOpacity: 0.05 },
         onEachFeature: (feature, layer) => {
@@ -399,9 +436,8 @@
         }
       }).addTo(customLayersGroup.boundary);
 
-      exactHoaBounds = geojsonLayer.getBounds();
-      map.fitBounds(exactHoaBounds.pad(0.08), { maxZoom: 18 });
-      map.setMaxBounds(exactHoaBounds.pad(0.45));
+      map.fitBounds(geojsonLayer.getBounds().pad(0.08), { maxZoom: 18 });
+      map.setMaxBounds(geojsonLayer.getBounds().pad(0.45));
 
       const outerRing = [[85, -179], [85, 179], [-85, 179], [-85, -179]];
       const holes = [];
@@ -410,60 +446,10 @@
         if (f.geometry.type === "Polygon") holes.push(f.geometry.coordinates[0].map(c => [c[1], c[0]]));
         else if (f.geometry.type === "MultiPolygon") f.geometry.coordinates.forEach(p => holes.push(p[0].map(c => [c[1], c[0]])));
       });
-
       L.polygon([outerRing, ...holes], { stroke: false, fillColor: "#0f172a", fillOpacity: 0.55, interactive: false }).addTo(customLayersGroup.mask);
       map.invalidateSize();
     })
     .catch(err => console.warn("Boundary load note:", err));
-
-  let isAddingPin = false;
-  document.getElementById("enableAddBtn").addEventListener("click", () => {
-    isAddingPin = true;
-    statusPill.textContent = "CLICK MAP TO PLACE PIN";
-    statusPill.style.background = "#10b981";
-  });
-
-  map.on("click", (e) => {
-    if (isAddingPin) {
-      const cat = document.getElementById("newCategory").value;
-      const title = document.getElementById("newTitle").value || "New HOA Pin";
-      const desc = document.getElementById("newDesc").value || "";
-      const radius = parseFloat(document.getElementById("camRadius").value) || 35;
-      const fileInput = document.getElementById("imageInput");
-
-      const finishAdding = (base64Image) => {
-        customAssets.push({
-          id: Date.now(),
-          type: cat,
-          title: title,
-          lat: e.latlng.lat,
-          lng: e.latlng.lng,
-          radius: radius,
-          imageData: base64Image || null,
-          desc: desc
-        });
-
-        localStorage.setItem("santorini_hoa_assets", JSON.stringify(customAssets));
-        renderCustomData();
-
-        isAddingPin = false;
-        statusPill.textContent = "Santorini Village Master Map Ready";
-        statusPill.style.background = "rgba(15, 23, 42, 0.88)";
-        fileInput.value = "";
-        alert("New pin successfully added to map!");
-      };
-
-      if (cat === "signphoto" && fileInput.files && fileInput.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(uploadEvent) {
-          finishAdding(uploadEvent.target.result);
-        };
-        reader.readAsDataURL(fileInput.files[0]);
-      } else {
-        finishAdding(null);
-      }
-    }
-  });
 
   const toggleMappings = {
     "lyr-hoaboundary": customLayersGroup.boundary,
@@ -501,8 +487,7 @@
   });
 
   document.getElementById("resetBtn").addEventListener("click", () => {
-    if (exactHoaBounds) map.fitBounds(exactHoaBounds.pad(0.08), { maxZoom: 18 });
-    else map.setView([40.5738, -111.9465], 18);
+    map.setView([40.5738, -111.9465], 18);
   });
 </script>
 </body>
