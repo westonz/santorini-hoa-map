@@ -17,7 +17,7 @@
     h1 { font-size: 1.15rem; margin: 0; color: #38bdf8; }
     .subtitle { font-size: 0.78rem; color: #94a3b8; margin-top: 3px; }
     .card { background: #334155; border-radius: 8px; padding: 10px 12px; }
-    .card h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #38bdf8; margin: 0 0 8px 0; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+    .card h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #38bdf8; margin: 0 0 8px 0; }
     .layer-item { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-size: 0.83rem; }
     .layer-item:last-child { margin-bottom: 0; }
     .layer-item label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
@@ -33,6 +33,8 @@
       padding: 6px 8px; border-radius: 4px; border: 1px solid #475569;
       background: #0f172a; color: #f8fafc; font-size: 0.78rem;
     }
+    .row-inputs { display: flex; gap: 6px; }
+    .row-inputs > div { flex: 1; display: flex; flex-direction: column; gap: 4px; }
     #info-box { font-size: 0.78rem; color: #e2e8f0; max-height: 220px; overflow-y: auto; background: #0f172a; padding: 10px; border-radius: 6px; }
     #info-box table { width: 100%; border-collapse: collapse; margin-top: 6px; }
     #info-box td { padding: 3px 4px; border-bottom: 1px solid #334155; word-break: break-word; }
@@ -68,76 +70,66 @@
     <button class="btn" id="resetBtn">Zoom to HOA Boundary</button>
 
     <div class="card">
-      <h2>HOographic Operations (Custom)</h2>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-firelanes" checked /> Fire Lanes &amp; Red Curbs</label></div>
+      <h2>HOA Operations Layers (Custom)</h2>
+      <div class="layer-item"><label><input type="checkbox" id="lyr-hoaboundary" checked /> HOA Subdivision Boundary Outline</label></div>
+      <div class="layer-item"><label><input type="checkbox" id="lyr-firelanes" checked /> Fire Lanes &amp; Red Curbs (Lines)</label></div>
+      <div class="layer-item"><label><input type="checkbox" id="lyr-fireworks" checked /> HOA Firework Restriction Zones</label></div>
       <div class="layer-item"><label><input type="checkbox" id="lyr-signs" checked /> Fire Lane Signs &amp; Photos</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-cameras" checked /> Security Cameras &amp; Coverage</label></div>
+      <div class="layer-item"><label><input type="checkbox" id="lyr-cameras" checked /> Security Cameras &amp; FOV</label></div>
       <div class="layer-item"><label><input type="checkbox" id="lyr-assets" checked /> HOA Shed, Pumps &amp; Infrastructure</label></div>
     </div>
 
     <div class="card">
-      <h2>Add New HOA Pin or Red Curb</h2>
+      <h2>Add New HOA Pin or Shape</h2>
       <div class="form-group">
         <label>Category:</label>
         <select id="newCategory">
-          <option value="sign">Fire Lane Sign &amp; Photo Pin</option>
-          <option value="camera">Security Camera Pin</option>
-          <option value="asset">HOA Asset Pin (Shed/Pump)</option>
+          <option value="camera">Security Camera (with FOV/Radius)</option>
+          <option value="sign">Fire Lane Sign &amp; Photo</option>
+          <option value="asset">HOA Asset (Shed/Pump)</option>
         </select>
         <label>Title / Label:</label>
         <input type="text" id="newTitle" placeholder="e.g. Camera 01 - North Entrance" />
+        <div class="row-inputs">
+          <div>
+            <label>Camera Radius (m):</label>
+            <input type="number" id="camRadius" value="35" />
+          </div>
+          <div>
+            <label>Camera Angle (°):</label>
+            <input type="number" id="camAngle" value="0" placeholder="0-360" />
+          </div>
+        </div>
         <label>Details / Link / Image URL:</label>
         <textarea id="newDesc" rows="2" placeholder="Dashboard URL, photo link, or notes..."></textarea>
         <button class="btn btn-green" id="enableAddBtn">Activate Drop Pin Mode</button>
       </div>
       <hr style="border:0; border-top:1px solid #475569; margin:8px 0;">
-      <button class="btn" id="startDrawLineBtn" style="background:#ef4444;">Draw Red Curb / Fire Lane Line</button>
+      <div class="form-group">
+        <label>Line / Shape Color:</label>
+        <select id="shapeColor">
+          <option value="#ef4444">Red (Fire Lane / Fireworks Ban)</option>
+          <option value="#f59e0b">Yellow (No Parking)</option>
+          <option value="#3b82f6">Blue (Water / Utility)</option>
+          <option value="#10b981">Green (General HOA Zone)</option>
+        </select>
+      </div>
+      <div class="row-inputs" style="margin-top:6px;">
+        <button class="btn" id="startDrawLineBtn" style="background:#ef4444;">Draw Line</button>
+        <button class="btn" id="startDrawPolyBtn" style="background:#f59e0b;">Draw Zone Polygon</button>
+      </div>
     </div>
 
     <div class="card">
-      <h2>Parcels, Addresses &amp; Zoning</h2>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-parcels" checked /> Parcels Public</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-address" /> Address Points</label></div>
+      <h2>South Jordan City GIS Layers</h2>
+      <div class="layer-item"><label><input type="checkbox" id="lyr-parcels" /> Parcels Public</label></div>
+      <div class="layer-item"><label><input type="checkbox" id="lyr-storm" /> Storm Drains &amp; Land Drains</label></div>
+      <div class="layer-item"><label><input type="checkbox" id="lyr-fiber" /> Google Fiber</label></div>
+      <div class="layer-item"><label><input type="checkbox" id="lyr-sewer" /> Sanitary Sewer</label></div>
+      <div class="layer-item"><label><input type="checkbox" id="lyr-water" /> Secondary Water</label></div>
+      <div class="layer-item"><label><input type="checkbox" id="lyr-garbage" /> Garbage Pickup Days</label></div>
+      <div class="layer-item"><label><input type="checkbox" id="lyr-firecity" /> City Fire Restrictions</label></div>
       <div class="layer-item"><label><input type="checkbox" id="lyr-zoning" /> Development Zoning</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-cityowned" /> City-Owned Parcels</label></div>
-    </div>
-
-    <div class="card">
-      <h2>Utilities &amp; Fiber</h2>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-fiber" checked /> Google Fiber (Public)</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-sewer" checked /> Sanitary Sewer</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-water" checked /> Secondary Water</label></div>
-    </div>
-
-    <div class="card">
-      <h2>Storm Drain &amp; Drainage</h2>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-storm" checked /> Storm Drain (MapServer)</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-impervious" /> Impervious Surfaces</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-flood" /> Flood Plains &amp; Water Bodies</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-contours" /> Elevation Contours</label></div>
-    </div>
-
-    <div class="card">
-      <h2>Streets, Traffic &amp; Garbage</h2>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-streets" checked /> Street Centerlines</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-pavement" /> Pavement Data</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-snow" /> Snow Plow Routes</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-traffic" /> Traffic Points</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-garbage" checked /> Garbage Pickup Days</label></div>
-    </div>
-
-    <div class="card">
-      <h2>Police, Fire &amp; Code Enforcement</h2>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-fire" checked /> Fire Restriction Zones</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-police" /> Police Districts</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-code" /> Code Enforcement</label></div>
-    </div>
-
-    <div class="card">
-      <h2>Reference &amp; Boundaries</h2>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-buildings" /> Building Footprints</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-boundaries" /> City Boundaries</label></div>
-      <div class="layer-item"><label><input type="checkbox" id="lyr-voting" /> Council Districts &amp; Voting</label></div>
     </div>
 
     <div class="card">
@@ -151,7 +143,7 @@
 
     <div class="card" style="flex:1; display:flex; flex-direction:column;">
       <h2>Inspector</h2>
-      <div id="info-box">Click any item on the map to inspect details.</div>
+      <div id="info-box">Click any item on the map to inspect or edit details.</div>
     </div>
   </div>
 
@@ -165,277 +157,4 @@
 <script src="https://unpkg.com/esri-leaflet@3.0.12/dist/esri-leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 <script>
-  const BASE_REST = "https://gis2.southjordanutah.gov/server/rest/services";
-  const statusPill = document.getElementById("status-pill");
-
-  const map = L.map("map", {
-    center: [40.5738, -111.9465],
-    zoom: 18,
-    minZoom: 15,
-    maxZoom: 19
-  });
-
-  const basemaps = {
-    esriStreets: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 }),
-    cartoLight: L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { maxZoom: 19 }),
-    aerial: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 }).addTo(map)
-  };
-
-  // Comprehensive South Jordan City GIS Layers mapping
-  const cityLayers = {
-    parcels: L.esri.dynamicMapLayer({ url: `${BASE_REST}/Parcels_public/MapServer`, opacity: 0.85 }).addTo(map),
-    address: L.esri.dynamicMapLayer({ url: `${BASE_REST}/Address_Points/MapServer`, opacity: 0.9 }),
-    zoning: L.esri.dynamicMapLayer({ url: `${BASE_REST}/Development/Zoning/MapServer`, opacity: 0.55 }),
-    cityowned: L.esri.dynamicMapLayer({ url: `${BASE_REST}/Reference/Parcels_CityOwned/MapServer`, opacity: 0.75 }),
-
-    fiber: L.esri.dynamicMapLayer({ url: `${BASE_REST}/Engineering/GoogleFiber_Public/MapServer`, opacity: 0.95 }).addTo(map),
-    sewer: L.esri.dynamicMapLayer({ url: `${BASE_REST}/Public_Works/Sewer/MapServer`, opacity: 0.9 }).addTo(map),
-    water: L.esri.dynamicMapLayer({ url: `${BASE_REST}/Water/SecondaryWater_public/MapServer`, opacity: 0.9 }).addTo(map),
-
-    storm: L.esri.dynamicMapLayer({ url: `${BASE_REST}/StormDrain/StormDrain/MapServer`, opacity: 0.95 }).addTo(map),
-    impervious: L.esri.dynamicMapLayer({ url: `${BASE_REST}/StormDrain/Impervious_Surfaces/MapServer`, opacity: 0.6 }),
-    flood: L.layerGroup([
-      L.esri.dynamicMapLayer({ url: `${BASE_REST}/Reference/Flood_Plains/MapServer`, opacity: 0.7 }),
-      L.esri.dynamicMapLayer({ url: `${BASE_REST}/Reference/Water_Bodies/MapServer`, opacity: 0.8 })
-    ]),
-    contours: L.esri.dynamicMapLayer({ url: `${BASE_REST}/Reference/Contours/MapServer`, opacity: 0.75 }),
-
-    streets: L.esri.dynamicMapLayer({ url: `${BASE_REST}/Centerlines/MapServer`, opacity: 0.8 }).addTo(map),
-    pavement: L.esri.dynamicMapLayer({ url: `${BASE_REST}/Streets/Pavement/MapServer`, opacity: 0.7 }),
-    snow: L.esri.dynamicMapLayer({ url: `${BASE_REST}/Streets/SnowPlow_Routes/MapServer`, opacity: 0.7 }),
-    traffic: L.esri.dynamicMapLayer({ url: `${BASE_REST}/Engineering/TrafficPTS_public/MapServer`, opacity: 0.9 }),
-    garbage: L.esri.dynamicMapLayer({ url: `${BASE_REST}/Public_Works/Garbage_Pickup_Days/MapServer`, opacity: 0.55 }).addTo(map),
-
-    fire: L.esri.dynamicMapLayer({ url: `${BASE_REST}/Police_Fire/Fire_Restriction_Zones/MapServer`, opacity: 0.65 }).addTo(map),
-    police: L.esri.dynamicMapLayer({ url: `${BASE_REST}/Police_Fire/Police_Districts/MapServer`, opacity: 0.5 }),
-    code: L.esri.dynamicMapLayer({ url: `${BASE_REST}/Local_Government/GovernmentServicesPolice_Fire/Code_Enforcement/MapServer`, opacity: 0.7 }),
-
-    buildings: L.esri.dynamicMapLayer({ url: `${BASE_REST}/Reference/BuildingFootprints/MapServer`, opacity: 0.75 }),
-    boundaries: L.esri.dynamicMapLayer({ url: `${BASE_REST}/Boundaries/MapServer`, opacity: 0.7 }),
-    voting: L.esri.dynamicMapLayer({ url: `${BASE_REST}/Voting/Voting/MapServer`, opacity: 0.5 })
-  };
-
-  // Persistent Custom Data Storage
-  let customAssets = JSON.parse(localStorage.getItem("santorini_hoa_assets") || JSON.stringify([
-    { id: 1, type: "asset", title: "HOA Storage Shed", lat: 40.5742, lng: -111.9420, desc: "Main equipment and tool shed." },
-    { id: 2, type: "asset", title: "Secondary Water Pump & Valve Box", lat: 40.5750, lng: -111.9431, desc: "Main irrigation tie-in and booster pump." },
-    { id: 3, type: "camera", title: "North Entrance Camera", lat: 40.5765, lng: -111.9415, desc: "PTZ security camera covering entrance. <br><a href='https://your-NVR-dashboard-link.com' target='_blank' style='color:#38bdf8;font-weight:bold;'>Open Live Camera Dashboard &rarr;</a>" },
-    { id: 4, type: "sign", title: "Fire Lane No Parking Sign #1", lat: 40.5755, lng: -111.9440, desc: "Posted tow-away zone sign.<br><img src='https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=300' style='width:100%;border-radius:4px;margin-top:4px;' alt='Sign Photo'>" }
-  ]));
-
-  let customLines = JSON.parse(localStorage.getItem("santorini_hoa_lines") || JSON.stringify([
-    { id: 101, title: "North Drive Red Curb", latlngs: [[40.5758, -111.9440], [40.5758, -111.9415]], desc: "Towing enforced 24/7." }
-  ]));
-
-  const customLayersGroup = {
-    firelanes: L.layerGroup().addTo(map),
-    signs: L.layerGroup().addTo(map),
-    cameras: L.layerGroup().addTo(map),
-    assets: L.layerGroup().addTo(map)
-  };
-
-  function renderCustomData() {
-    Object.values(customLayersGroup).forEach(g => g.clearLayers());
-
-    customAssets.forEach(item => {
-      let iconHtml = '🏢';
-      if (item.type === "camera") iconHtml = '📷';
-      else if (item.type === "sign") iconHtml = '🛑';
-
-      const marker = L.marker([item.lat, item.lng], {
-        icon: L.divIcon({ className: '', html: `<div class="compact-marker">${iconHtml}</div>`, iconSize: [28, 28], iconAnchor: [14, 14] })
-      });
-
-      if (item.type === "camera") {
-        L.circle([item.lat, item.lng], { radius: 30, color: '#3b82f6', fillOpacity: 0.12, weight: 1 }).addTo(customLayersGroup.cameras);
-      }
-
-      marker.bindPopup(`<div style="font-size:12px;"><strong>${item.title}</strong><br>${item.desc}<br><br><button onclick="deleteAsset(${item.id})" style="background:#ef4444;color:white;border:none;padding:3px 6px;border-radius:4px;cursor:pointer;">Delete Pin</button></div>`);
-
-      if (item.type === "sign") customLayersGroup.signs.addLayer(marker);
-      else if (item.type === "camera") customLayersGroup.cameras.addLayer(marker);
-      else customLayersGroup.assets.addLayer(marker);
-    });
-
-    customLines.forEach(line => {
-      const polyline = L.polyline(line.latlngs, { color: '#ef4444', weight: 6, opacity: 0.85 });
-      polyline.bindPopup(`<div style="font-size:12px;"><strong>${line.title}</strong><br>${line.desc}<br><br><button onclick="deleteLine(${line.id})" style="background:#ef4444;color:white;border:none;padding:3px 6px;border-radius:4px;cursor:pointer;">Delete Line</button></div>`);
-      customLayersGroup.firelanes.addLayer(polyline);
-    });
-  }
-
-  window.deleteAsset = function(id) {
-    customAssets = customAssets.filter(a => a.id !== id);
-    localStorage.setItem("santorini_hoa_assets", JSON.stringify(customAssets));
-    renderCustomData();
-  };
-
-  window.deleteLine = function(id) {
-    customLines = customLines.filter(l => l.id !== id);
-    localStorage.setItem("santorini_hoa_lines", JSON.stringify(customLines));
-    renderCustomData();
-  };
-
-  renderCustomData();
-
-  // Leaflet.Draw integration
-  const drawnItems = new L.FeatureGroup().addTo(map);
-  const drawControl = new L.Control.Draw({
-    edit: { featureGroup: drawnItems },
-    draw: {
-      polygon: false, rectangle: false, circle: false, marker: false, circlemarker: false,
-      polyline: { shapeOptions: { color: '#ef4444', weight: 6 } }
-    }
-  });
-  map.addControl(drawControl);
-
-  document.getElementById("startDrawLineBtn").addEventListener("click", () => {
-    new L.Draw.Polyline(map, drawControl.options.draw.polyline).enable();
-    statusPill.textContent = "DRAWING: Click points on road to trace red curb, double-click to finish";
-    statusPill.style.background = "#ef4444";
-  });
-
-  map.on(L.Draw.Event.CREATED, function (e) {
-    const layer = e.layer;
-    drawnItems.addLayer(layer);
-    const latlngs = layer.getLatLngs();
-
-    const title = prompt("Enter Fire Lane / Red Curb Name:", "Red Curb Zone");
-    const desc = prompt("Enter towing rules or notes:", "Tow-away zone 24/7.");
-
-    customLines.push({
-      id: Date.now(),
-      title: title || "Red Curb Zone",
-      latlngs: latlngs.map(pt => [pt.lat, pt.lng]),
-      desc: desc || ""
-    });
-
-    localStorage.setItem("santorini_hoa_lines", JSON.stringify(customLines));
-    map.removeLayer(layer);
-    renderCustomData();
-    statusPill.textContent = "Santorini Village Master Map Ready";
-    statusPill.style.background = "rgba(15, 23, 42, 0.88)";
-  });
-
-  // HOA Boundary
-  const hoaBorderGroup = L.layerGroup().addTo(map);
-  const hoaMaskGroup = L.layerGroup().addTo(map);
-  let exactHoaBounds = null;
-
-  const hoaQueryUrl = `${BASE_REST}/Planning/Subdivisions/MapServer/0/query?where=${encodeURIComponent("UPPER(NAME) LIKE '%SANTORINI%'")}&outFields=*&outSR=4326&f=geojson`;
-
-  fetch(hoaQueryUrl)
-    .then(res => res.json())
-    .then(featureCollection => {
-      if (!featureCollection || !featureCollection.features || !featureCollection.features.length) return;
-
-      const geojsonLayer = L.geoJSON(featureCollection, {
-        style: { color: "#ef4444", weight: 3, dashArray: "6, 4", fillColor: "#38bdf8", fillOpacity: 0.05 },
-        onEachFeature: (feature, layer) => {
-          if (feature.properties && feature.properties.NAME) {
-            layer.bindTooltip(feature.properties.NAME, { permanent: true, direction: "center", className: "phase-label" });
-          }
-        }
-      }).addTo(hoaBorderGroup);
-
-      exactHoaBounds = geojsonLayer.getBounds();
-      map.fitBounds(exactHoaBounds.pad(0.08), { maxZoom: 18 });
-      map.setMaxBounds(exactHoaBounds.pad(0.45));
-
-      const outerRing = [[85, -179], [85, 179], [-85, 179], [-85, -179]];
-      const holes = [];
-      featureCollection.features.forEach(f => {
-        if (!f.geometry) return;
-        if (f.geometry.type === "Polygon") holes.push(f.geometry.coordinates[0].map(c => [c[1], c[0]]));
-        else if (f.geometry.type === "MultiPolygon") f.geometry.coordinates.forEach(p => holes.push(p[0].map(c => [c[1], c[0]])));
-      });
-
-      L.polygon([outerRing, ...holes], { stroke: false, fillColor: "#0f172a", fillOpacity: 0.55, interactive: false }).addTo(hoaMaskGroup);
-      statusPill.textContent = "Santorini Village Master Map Ready";
-    });
-
-  let isAddingPin = false;
-  document.getElementById("enableAddBtn").addEventListener("click", () => {
-    isAddingPin = true;
-    statusPill.textContent = "CLICK MAP TO PLACE PIN";
-    statusPill.style.background = "#10b981";
-  });
-
-  map.on("click", (e) => {
-    if (isAddingPin) {
-      const cat = document.getElementById("newCategory").value;
-      const title = document.getElementById("newTitle").value || "New HOA Asset";
-      const desc = document.getElementById("newDesc").value || "No description provided.";
-
-      customAssets.push({
-        id: Date.now(),
-        type: cat,
-        title: title,
-        lat: e.latlng.lat,
-        lng: e.latlng.lng,
-        desc: desc
-      });
-
-      localStorage.setItem("santorini_hoa_assets", JSON.stringify(customAssets));
-      renderCustomData();
-
-      isAddingPin = false;
-      statusPill.textContent = "Santorini Village Master Map Ready";
-      statusPill.style.background = "rgba(15, 23, 42, 0.88)";
-      alert("New asset successfully pinned to map!");
-    }
-  });
-
-  // Layer Toggles mapping
-  const toggleMappings = {
-    "lyr-firelanes": customLayersGroup.firelanes,
-    "lyr-signs": customLayersGroup.signs,
-    "lyr-cameras": customLayersGroup.cameras,
-    "lyr-assets": customLayersGroup.assets,
-    "lyr-parcels": cityLayers.parcels,
-    "lyr-address": cityLayers.address,
-    "lyr-zoning": cityLayers.zoning,
-    "lyr-cityowned": cityLayers.cityowned,
-    "lyr-fiber": cityLayers.fiber,
-    "lyr-sewer": cityLayers.sewer,
-    "lyr-water": cityLayers.water,
-    "lyr-storm": cityLayers.storm,
-    "lyr-impervious": cityLayers.impervious,
-    "lyr-flood": cityLayers.flood,
-    "lyr-contours": cityLayers.contours,
-    "lyr-streets": cityLayers.streets,
-    "lyr-pavement": cityLayers.pavement,
-    "lyr-snow": cityLayers.snow,
-    "lyr-traffic": cityLayers.traffic,
-    "lyr-garbage": cityLayers.garbage,
-    "lyr-fire": cityLayers.fire,
-    "lyr-police": cityLayers.police,
-    "lyr-code": cityLayers.code,
-    "lyr-buildings": cityLayers.buildings,
-    "lyr-boundaries": cityLayers.boundaries,
-    "lyr-voting": cityLayers.voting
-  };
-
-  Object.entries(toggleMappings).forEach(([id, layer]) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.addEventListener("change", (e) => {
-        if (e.target.checked) map.addLayer(layer);
-        else map.removeLayer(layer);
-      });
-    }
-  });
-
-  document.querySelectorAll('input[name="basemap"]').forEach(radio => {
-    radio.addEventListener("change", (e) => {
-      Object.values(basemaps).forEach(b => map.removeLayer(b));
-      map.addLayer(basemaps[e.target.value]);
-    });
-  });
-
-  document.getElementById("resetBtn").addEventListener("click", () => {
-    if (exactHoaBounds) map.fitBounds(exactHoaBounds.pad(0.08), { maxZoom: 18 });
-  });
-</script>
-</body>
-</html>
+  const BASE_REST = "
